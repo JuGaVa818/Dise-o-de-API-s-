@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "nombre_provincia": "San José",
+    "nombre": "Parqueo Central SJ",
+    "precio_por_hora": 1200.00
+  },
+  {
+    "id": 2,
+    "nombre_provincia": "Alajuela",
+    "nombre": "Parqueo Central Alajuela",
+    "precio_por_hora": 900.00
+  }
+]
