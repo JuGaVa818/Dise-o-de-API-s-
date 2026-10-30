@@ -1,8 +1,8 @@
 # Sistema de parqueo
 
-Aplicación de consola en .NET 8 con repositorios para PostgreSQL/EF Core y JSON local.
+API en .NET 8 con repositorios para PostgreSQL/EF Core y JSON local.
 
-## Ejecutar con JSON local
+## Ejecutar la API con JSON local
 
 Desde la raíz del repositorio:
 
@@ -10,9 +10,69 @@ Desde la raíz del repositorio:
 dotnet run --project Parqueo\Parqueo.csproj
 ```
 
-Por defecto se leen los tres JSON junto al ejecutable y se imprimen sus cantidades.
-Los repositorios JSON implementan búsquedas parciales, llave primaria y operaciones
-CRUD. Las escrituras reemplazan el archivo de forma atómica.
+Por defecto, la API utiliza los tres JSON copiados junto al ejecutable. Las
+escrituras de los repositorios JSON reemplazan el archivo de forma atómica.
+
+## API de automóviles
+
+Base URL local: `http://localhost:5000` (o la URL que indique `dotnet run`).
+
+| Método | Ruta | Acción |
+|---|---|---|
+| GET | `/api/automoviles` | Consultar todos los automóviles |
+| GET | `/api/automoviles/{id}` | Consultar un automóvil por ID |
+| POST | `/api/automoviles` | Crear un automóvil |
+| PUT | `/api/automoviles/{id}` | Actualizar un automóvil |
+| DELETE | `/api/automoviles/{id}` | Eliminar un automóvil |
+
+El cuerpo de POST y PUT acepta `color`, `anio`, `fabricante` y `tipo`.
+El tipo debe ser `sedán`, `4x4` o `moto`; el año permitido va de 1886 a 2100.
+POST devuelve `201 Created`, PUT y DELETE devuelven `204 No Content` cuando se
+completan, un ID inexistente devuelve `404 Not Found` y los datos inválidos
+devuelven `400 Bad Request`. No se permite eliminar un automóvil con ingresos
+asociados; en ese caso se devuelve `409 Conflict`.
+
+Ejemplo de JSON:
+
+```json
+{
+  "color": "Verde",
+  "anio": 2024,
+  "fabricante": "Honda",
+  "tipo": "sedán"
+}
+```
+
+## API de parqueos
+
+La tabla de la base de datos se llama `PRQ_Parqueo`; la ruta del API es
+`/api/parqueos`.
+
+| Método | Ruta | Acción |
+|---|---|---|
+| GET | `/api/parqueos` | Consultar todos los parqueos |
+| GET | `/api/parqueos/{id}` | Consultar un parqueo por ID |
+| POST | `/api/parqueos` | Crear un parqueo |
+| PUT | `/api/parqueos/{id}` | Actualizar un parqueo |
+| DELETE | `/api/parqueos/{id}` | Eliminar un parqueo |
+
+El cuerpo de POST y PUT acepta `nombreProvincia`, `nombre` y `precioPorHora`.
+Los nombres respetan los máximos definidos por la tabla; el precio debe estar
+entre `0` y `99999999.99`, con hasta dos decimales. POST devuelve `201 Created`,
+PUT y DELETE devuelven `204 No Content` cuando se completan, un ID inexistente
+devuelve `404 Not Found` y los datos inválidos devuelven `400 Bad Request`. No se
+puede eliminar un parqueo con ingresos asociados; en ese caso se devuelve
+`409 Conflict` para respetar la clave foránea.
+
+Ejemplo de JSON:
+
+```json
+{
+  "nombreProvincia": "Heredia",
+  "nombre": "Parqueo Central",
+  "precioPorHora": 850.00
+}
+```
 
 ## User Secrets y PostgreSQL
 
