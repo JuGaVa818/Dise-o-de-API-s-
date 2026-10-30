@@ -28,9 +28,11 @@ public sealed class IngresoAutomovilJsonRepository(
         CancellationToken cancellationToken = default)
     {
         var records = await base.ObtenerTodosAsync(cancellationToken);
+        var vehicleById = (await automoviles.ObtenerTodosAsync(cancellationToken))
+            .ToDictionary(item => item.Id);
         var parkById = (await parqueos.ObtenerTodosAsync(cancellationToken))
             .ToDictionary(item => item.Id);
-        return records.Select(item => AsociarParqueo(item, parkById)).ToArray();
+        return records.Select(item => AsociarRelaciones(item, vehicleById, parkById)).ToArray();
     }
 
     public override async Task<IngresoAutomovil?> ObtenerPorIdAsync(
@@ -43,10 +45,18 @@ public sealed class IngresoAutomovilJsonRepository(
             return null;
         }
 
-        var park = await parqueos.ObtenerPorIdAsync(record.IdParqueo, cancellationToken);
-        record.Parqueo = park ?? throw new InvalidDataException(
-            $"El ingreso {record.Consecutivo} referencia un parqueo inexistente.");
-        return record;
+        var vehicle = await automoviles.ObtenerPorIdAsync(
+            record.IdAutomovil, cancellationToken);
+        var park = await parqueos.ObtenerPorIdAsync(
+            record.IdParqueo, cancellationToken);
+        return AsociarRelaciones(
+            record,
+            vehicle is null
+                ? new Dictionary<int, Automovil>()
+                : new Dictionary<int, Automovil> { [vehicle.Id] = vehicle },
+            park is null
+                ? new Dictionary<int, Parqueo>()
+                : new Dictionary<int, Parqueo> { [park.Id] = park });
     }
 
     public async Task<decimal?> ObtenerPrecioPorHoraPorParqueoAsync(
@@ -132,16 +142,24 @@ public sealed class IngresoAutomovilJsonRepository(
         }
     }
 
-    private static IngresoAutomovil AsociarParqueo(
+    private static IngresoAutomovil AsociarRelaciones(
         IngresoAutomovil record,
+        IReadOnlyDictionary<int, Automovil> vehicleById,
         IReadOnlyDictionary<int, Parqueo> parkById)
     {
+        if (!vehicleById.TryGetValue(record.IdAutomovil, out var vehicle))
+        {
+            throw new InvalidDataException(
+                $"El ingreso {record.Consecutivo} referencia un automóvil inexistente.");
+        }
+
         if (!parkById.TryGetValue(record.IdParqueo, out var park))
         {
             throw new InvalidDataException(
                 $"El ingreso {record.Consecutivo} referencia un parqueo inexistente.");
         }
 
+        record.Automovil = vehicle;
         record.Parqueo = park;
         return record;
     }

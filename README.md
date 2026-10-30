@@ -74,6 +74,38 @@ Ejemplo de JSON:
 }
 ```
 
+## API de ingresos
+
+La tabla de la base de datos se llama `PRQ_Ingreso_Automoviles`; la ruta del API
+es `/api/ingresos`.
+
+| Método | Ruta | Acción |
+|---|---|---|
+| GET | `/api/ingresos` | Consultar todos los ingresos |
+| GET | `/api/ingresos/{consecutivo}` | Consultar por consecutivo |
+| POST | `/api/ingresos` | Registrar un ingreso |
+| PUT | `/api/ingresos/{consecutivo}` | Actualizar un ingreso |
+| DELETE | `/api/ingresos/{consecutivo}` | Eliminar un ingreso |
+
+El cuerpo de POST y PUT acepta `idParqueo`, `idAutomovil`,
+`fechaHoraEntrada` y `fechaHoraSalida` (opcional). Las fechas se envían en
+formato ISO 8601. Ambos IDs deben existir; el API responde `400 Bad Request`
+cuando una referencia no existe o la fecha de salida precede a la entrada. POST
+devuelve `201 Created`, PUT y DELETE devuelven `204 No Content` cuando se
+completan y un consecutivo inexistente devuelve `404 Not Found`.
+
+Las respuestas GET incluyen los objetos relacionados `parqueo` y `automovil`,
+además de duración y monto cuando existe una salida. Por ejemplo:
+
+```json
+{
+  "idParqueo": 1,
+  "idAutomovil": 1,
+  "fechaHoraEntrada": "2026-10-30T08:00:00",
+  "fechaHoraSalida": "2026-10-30T09:30:00"
+}
+```
+
 ## User Secrets y PostgreSQL
 
 El proyecto tiene un `UserSecretsId` y lee la cadena de conexión desde

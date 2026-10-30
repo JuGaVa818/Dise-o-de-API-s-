@@ -37,6 +37,14 @@ public sealed class ParqueoRepositoryTests
         Assert.Equal(5, (await cars.ObtenerTodosAsync()).Count);
         Assert.Equal(2, (await parks.ObtenerTodosAsync()).Count);
         Assert.Equal(15, (await entries.ObtenerTodosAsync()).Count);
+        var hydratedEntries = await entries.ObtenerTodosAsync();
+        Assert.All(hydratedEntries, entry =>
+        {
+            Assert.NotNull(entry.Automovil);
+            Assert.NotNull(entry.Parqueo);
+            Assert.Equal(entry.IdAutomovil, entry.Automovil.Id);
+            Assert.Equal(entry.IdParqueo, entry.Parqueo.Id);
+        });
 
         var filteredCars = await cars.BuscarAsync("lan", null, null, null, null);
         Assert.Single(filteredCars);
