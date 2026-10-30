@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Parqueo.Controllers;
 using Parqueo;
 using Parqueo.Data;
 using Parqueo.Repositories;
@@ -23,6 +25,19 @@ public sealed class ParqueoRepositoryTests
         Assert.Equal(
             ["PRQ_Automoviles", "PRQ_Ingreso_Automoviles", "PRQ_Parqueo"],
             tables);
+
+        var ingresoType = context.Model.FindEntityType(typeof(IngresoAutomovil))!;
+        var foreignKeys = ingresoType.GetForeignKeys().ToArray();
+        Assert.Contains(foreignKeys, foreignKey =>
+            foreignKey.Properties.Single().Name == nameof(IngresoAutomovil.IdAutomovil) &&
+            foreignKey.PrincipalEntityType.ClrType == typeof(Automovil) &&
+            foreignKey.DependentToPrincipal?.Name == nameof(IngresoAutomovil.Automovil) &&
+            foreignKey.PrincipalToDependent?.Name == nameof(Automovil.Ingresos));
+        Assert.Contains(foreignKeys, foreignKey =>
+            foreignKey.Properties.Single().Name == nameof(IngresoAutomovil.IdParqueo) &&
+            foreignKey.PrincipalEntityType.ClrType == typeof(Parqueo) &&
+            foreignKey.DependentToPrincipal?.Name == nameof(IngresoAutomovil.Parqueo) &&
+            foreignKey.PrincipalToDependent?.Name == nameof(Parqueo.Ingresos));
     }
 
     [Fact]
@@ -45,6 +60,20 @@ public sealed class ParqueoRepositoryTests
             Assert.Equal(entry.IdAutomovil, entry.Automovil.Id);
             Assert.Equal(entry.IdParqueo, entry.Parqueo.Id);
         });
+        var response = IngresoAutomovilResponse.FromEntity(
+            hydratedEntries.Single(entry => entry.Consecutivo == 1));
+        using var responseJson = JsonDocument.Parse(JsonSerializer.Serialize(
+            response,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        var responseRoot = responseJson.RootElement;
+        Assert.Equal(
+            response.IdAutomovil,
+            responseRoot.GetProperty("automovil").GetProperty("id").GetInt32());
+        Assert.Equal(
+            response.IdParqueo,
+            responseRoot.GetProperty("parqueo").GetProperty("id").GetInt32());
+        Assert.False(responseRoot.GetProperty("automovil").TryGetProperty("ingresos", out _));
+        Assert.False(responseRoot.GetProperty("parqueo").TryGetProperty("ingresos", out _));
 
         var filteredCars = await cars.BuscarAsync("lan", null, null, null, null);
         Assert.Single(filteredCars);
