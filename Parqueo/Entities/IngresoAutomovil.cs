@@ -34,8 +34,8 @@ public sealed class IngresoAutomovil
 
     [NotMapped]
     [JsonIgnore]
-    public decimal? DuracionEstadiaHoras => FechaHoraSalida is { } salida
-        ? (decimal)(salida.Ticks - FechaHoraEntrada.Ticks) / TimeSpan.TicksPerHour
+    public decimal? DuracionEstadiaHoras => DuracionEstadiaMinutos is { } minutos
+        ? minutos / 60m
         : null;
 
     [NotMapped]

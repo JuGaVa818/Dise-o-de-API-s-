@@ -126,6 +126,8 @@ public sealed class IngresoAutomovilJsonRepository(
             result.Add(new IngresoAutomovilConsulta(
                 item.Consecutivo,
                 vehicle,
+                item.Parqueo ?? throw new InvalidDataException(
+                    $"El ingreso {item.Consecutivo} no tiene parqueo relacionado."),
                 item.FechaHoraEntrada,
                 item.FechaHoraSalida,
                 prices[item.IdParqueo]));

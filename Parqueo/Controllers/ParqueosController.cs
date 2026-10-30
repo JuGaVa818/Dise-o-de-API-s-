@@ -12,8 +12,24 @@ public sealed class ParqueosController(IParqueoRepository parqueos) : Controller
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<Parqueo>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<Parqueo>>> ObtenerTodos(
-        CancellationToken cancellationToken) =>
-        Ok(await parqueos.ObtenerTodosAsync(cancellationToken));
+        [FromQuery] string? provincia,
+        [FromQuery] string? nombre,
+        [FromQuery] decimal? precioMinimo,
+        [FromQuery] decimal? precioMaximo,
+        CancellationToken cancellationToken)
+    {
+        if (precioMinimo > precioMaximo)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Rango de precios inválido.",
+                Detail = "precioMinimo debe ser menor o igual que precioMaximo."
+            });
+        }
+
+        return Ok(await parqueos.BuscarAsync(
+            provincia, nombre, precioMinimo, precioMaximo, cancellationToken));
+    }
 
     [HttpGet("{id:int}")]
     [ProducesResponseType<Parqueo>(StatusCodes.Status200OK)]
@@ -50,11 +66,6 @@ public sealed class ParqueosController(IParqueoRepository parqueos) : Controller
         [FromBody] ParqueoRequest request,
         CancellationToken cancellationToken)
     {
-        if (await parqueos.ObtenerPorIdAsync(id, cancellationToken) is null)
-        {
-            return NotFound();
-        }
-
         var actualizado = await parqueos.ActualizarAsync(
             request.ToEntity(id),
             cancellationToken);

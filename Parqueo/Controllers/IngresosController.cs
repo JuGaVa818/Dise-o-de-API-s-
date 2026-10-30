@@ -34,6 +34,46 @@ public sealed class IngresosController(
             : Ok(IngresoAutomovilResponse.FromEntity(ingreso));
     }
 
+    [HttpGet("por-tipo")]
+    [ProducesResponseType<IReadOnlyList<IngresoAutomovilResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyList<IngresoAutomovilResponse>>> ListarPorTipoYFechas(
+        [FromQuery] string? tipo,
+        [FromQuery] DateTime? desde,
+        [FromQuery] DateTime? hasta,
+        CancellationToken cancellationToken)
+    {
+        var error = ValidarConsulta(tipo, desde, hasta, "tipo");
+        if (error is not null)
+        {
+            return BadRequest(error);
+        }
+
+        var records = await ingresos.ListarPorTipoYFechasAsync(
+            tipo!, desde!.Value, hasta!.Value, cancellationToken);
+        return Ok(records.Select(IngresoAutomovilResponse.FromConsulta).ToArray());
+    }
+
+    [HttpGet("por-provincia")]
+    [ProducesResponseType<IReadOnlyList<IngresoAutomovilResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyList<IngresoAutomovilResponse>>> ListarPorProvinciaYFechas(
+        [FromQuery] string? provincia,
+        [FromQuery] DateTime? desde,
+        [FromQuery] DateTime? hasta,
+        CancellationToken cancellationToken)
+    {
+        var error = ValidarConsulta(provincia, desde, hasta, "provincia");
+        if (error is not null)
+        {
+            return BadRequest(error);
+        }
+
+        var records = await ingresos.ListarPorProvinciaYFechasAsync(
+            provincia!, desde!.Value, hasta!.Value, cancellationToken);
+        return Ok(records.Select(IngresoAutomovilResponse.FromConsulta).ToArray());
+    }
+
     [HttpPost]
     [ProducesResponseType<IngresoAutomovilResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -143,4 +183,39 @@ public sealed class IngresosController(
             Title = "La referencia de parqueo o automóvil no existe.",
             Detail = "Verifica los IDs de parqueo y automóvil antes de registrar el ingreso."
         };
+
+    private static ProblemDetails? ValidarConsulta(
+        string? filtro,
+        DateTime? desde,
+        DateTime? hasta,
+        string nombreFiltro)
+    {
+        if (string.IsNullOrWhiteSpace(filtro))
+        {
+            return new ProblemDetails
+            {
+                Title = $"El filtro {nombreFiltro} es obligatorio."
+            };
+        }
+
+        if (!desde.HasValue || !hasta.HasValue)
+        {
+            return new ProblemDetails
+            {
+                Title = "El intervalo de fechas está incompleto.",
+                Detail = "Proporciona los parámetros desde y hasta."
+            };
+        }
+
+        if (desde > hasta)
+        {
+            return new ProblemDetails
+            {
+                Title = "El intervalo de fechas es inválido.",
+                Detail = "desde debe ser menor o igual que hasta."
+            };
+        }
+
+        return null;
+    }
 }

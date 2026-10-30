@@ -80,6 +80,8 @@ public sealed class IngresoAutomovilEfRepository(ParqueoDbContext context)
             item.Consecutivo,
             item.Automovil ?? throw new InvalidOperationException(
                 $"El ingreso {item.Consecutivo} no tiene automóvil relacionado."),
+            item.Parqueo ?? throw new InvalidOperationException(
+                $"El ingreso {item.Consecutivo} no tiene parqueo relacionado."),
             item.FechaHoraEntrada,
             item.FechaHoraSalida,
             precios[item.IdParqueo])).ToArray();

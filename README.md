@@ -20,6 +20,7 @@ Base URL local: `http://localhost:5000` (o la URL que indique `dotnet run`).
 | Método | Ruta | Acción |
 |---|---|---|
 | GET | `/api/automoviles` | Consultar todos los automóviles |
+| GET | `/api/automoviles?color=blan&anioDesde=2019&anioHasta=2024&fabricante=toy&tipo=sed` | Filtrar automóviles |
 | GET | `/api/automoviles/{id}` | Consultar un automóvil por ID |
 | POST | `/api/automoviles` | Crear un automóvil |
 | PUT | `/api/automoviles/{id}` | Actualizar un automóvil |
@@ -43,6 +44,10 @@ Ejemplo de JSON:
 }
 ```
 
+Los parámetros de filtro son opcionales y se combinan con AND. Los filtros de
+color, fabricante y tipo permiten coincidencias parciales sin distinguir
+mayúsculas/minúsculas. `anioDesde` y `anioHasta` delimitan el intervalo inclusivo.
+
 ## API de parqueos
 
 La tabla de la base de datos se llama `PRQ_Parqueo`; la ruta del API es
@@ -51,6 +56,7 @@ La tabla de la base de datos se llama `PRQ_Parqueo`; la ruta del API es
 | Método | Ruta | Acción |
 |---|---|---|
 | GET | `/api/parqueos` | Consultar todos los parqueos |
+| GET | `/api/parqueos?provincia=san%20jos&nombre=central&precioMinimo=500&precioMaximo=1500` | Filtrar parqueos |
 | GET | `/api/parqueos/{id}` | Consultar un parqueo por ID |
 | POST | `/api/parqueos` | Crear un parqueo |
 | PUT | `/api/parqueos/{id}` | Actualizar un parqueo |
@@ -74,6 +80,10 @@ Ejemplo de JSON:
 }
 ```
 
+Los filtros son opcionales y se combinan con AND. Provincia y nombre permiten
+coincidencias parciales sin distinguir mayúsculas/minúsculas; el rango de precios
+es inclusivo.
+
 ## API de ingresos
 
 La tabla de la base de datos se llama `PRQ_Ingreso_Automoviles`; la ruta del API
@@ -83,6 +93,8 @@ es `/api/ingresos`.
 |---|---|---|
 | GET | `/api/ingresos` | Consultar todos los ingresos |
 | GET | `/api/ingresos/{consecutivo}` | Consultar por consecutivo |
+| GET | `/api/ingresos/por-tipo?tipo=sed&desde=2026-10-01T00:00:00&hasta=2026-10-31T23:59:59` | Filtrar por tipo y fechas |
+| GET | `/api/ingresos/por-provincia?provincia=san%20jos&desde=2026-10-01T00:00:00&hasta=2026-10-31T23:59:59` | Filtrar por provincia y fechas |
 | POST | `/api/ingresos` | Registrar un ingreso |
 | PUT | `/api/ingresos/{consecutivo}` | Actualizar un ingreso |
 | DELETE | `/api/ingresos/{consecutivo}` | Eliminar un ingreso |
@@ -106,6 +118,10 @@ además de duración y monto cuando existe una salida. Por ejemplo:
 }
 ```
 
+Los filtros de tipo y provincia son aproximados, ignoran mayúsculas/minúsculas y
+usan un intervalo inclusivo sobre `fecha_hora_entrada`. Ambos requieren `desde` y
+`hasta` en formato ISO 8601.
+
 ## User Secrets y PostgreSQL
 
 El proyecto tiene un `UserSecretsId` y lee la cadena de conexión desde
@@ -113,13 +129,27 @@ El proyecto tiene un `UserSecretsId` y lee la cadena de conexión desde
 asignados por el profesor; no pongas esos valores en código ni en Git:
 
 ```powershell
-dotnet user-secrets set "ConnectionStrings:Parqueo" "Host=<servidor>;Port=5432;Database=<base>;Username=<usuario>;Password=<contraseña>;SSL Mode=Require;Trust Server Certificate=true" --project Parqueo\Parqueo.csproj
+powershell -ExecutionPolicy Bypass -File .\Parqueo\configurar-conexion.ps1
 dotnet run --project Parqueo\Parqueo.csproj -- --Storage:Mode postgres
 ```
 
-Los secretos se guardan fuera del repositorio, en el perfil de usuario de .NET.
-El modo PostgreSQL no crea ni modifica tablas automáticamente; el esquema debe
-estar disponible antes de usar las consultas y operaciones CRUD.
+El script pide la contraseña de forma oculta y la guarda en User Secrets, fuera
+del repositorio. Sus valores predeterminados son el host
+`postgresql-hecferme.postgres.database.azure.com`, la base
+`advanced_programming` y el usuario `user_03`; puedes cambiarlos en los prompts.
+El script [diseño-bd.sql](./Parqueo/dise%C3%B1o-bd.sql) crea las tablas e índices
+de forma idempotente en el esquema `user_03`. Puedes ejecutarlo con `psql`
+después de configurar el cliente:
+
+```powershell
+psql -h postgresql-hecferme.postgres.database.azure.com -U user_03 -d advanced_programming -W -f Parqueo\diseño-bd.sql
+```
+
+La contraseña se solicita de forma interactiva; no la incluyas en el comando.
+El script no crea procedimientos almacenados: el CRUD del API usa EF Core y los
+repositorios existentes, por lo que esos procedimientos no serían utilizados.
+El modo PostgreSQL no crea tablas automáticamente; primero debe ejecutarse el
+script y el usuario debe poder acceder al esquema `user_03`.
 
 ## Scaffold de las tablas PRQ
 

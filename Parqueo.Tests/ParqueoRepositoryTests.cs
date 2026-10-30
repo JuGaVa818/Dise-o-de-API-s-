@@ -74,6 +74,30 @@ public sealed class ParqueoRepositoryTests
             responseRoot.GetProperty("parqueo").GetProperty("id").GetInt32());
         Assert.False(responseRoot.GetProperty("automovil").TryGetProperty("ingresos", out _));
         Assert.False(responseRoot.GetProperty("parqueo").TryGetProperty("ingresos", out _));
+        Assert.Equal(
+            210m,
+            responseRoot.GetProperty("duracion_estadia_minutos").GetDecimal());
+        Assert.Equal(
+            3.5m,
+            responseRoot.GetProperty("duracion_estadia_horas").GetDecimal());
+        Assert.Equal(
+            4200m,
+            responseRoot.GetProperty("monto_total_pagar").GetDecimal());
+        var openResponse = IngresoAutomovilResponse.FromEntity(
+            hydratedEntries.Single(entry => entry.Consecutivo == 14));
+        using var openResponseJson = JsonDocument.Parse(JsonSerializer.Serialize(
+            openResponse,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        var openResponseRoot = openResponseJson.RootElement;
+        Assert.Equal(
+            JsonValueKind.Null,
+            openResponseRoot.GetProperty("duracion_estadia_minutos").ValueKind);
+        Assert.Equal(
+            JsonValueKind.Null,
+            openResponseRoot.GetProperty("duracion_estadia_horas").ValueKind);
+        Assert.Equal(
+            JsonValueKind.Null,
+            openResponseRoot.GetProperty("monto_total_pagar").ValueKind);
 
         var filteredCars = await cars.BuscarAsync("lan", null, null, null, null);
         Assert.Single(filteredCars);
@@ -81,6 +105,10 @@ public sealed class ParqueoRepositoryTests
 
         var sedans = await entries.ListarPorTipoYFechasAsync("sEd", start, end);
         var completed = Assert.Single(sedans.Where(item => item.Consecutivo == 1));
+        Assert.Equal(1, completed.Automovil.Id);
+        Assert.Equal(1, completed.Parqueo.Id);
+        Assert.Equal(new DateTime(2026, 10, 1, 7, 15, 0), completed.FechaHoraEntrada);
+        Assert.Equal(new DateTime(2026, 10, 1, 10, 45, 0), completed.FechaHoraSalida);
         Assert.Equal(210m, completed.DuracionEstadiaMinutos);
         Assert.Equal(3.5m, completed.DuracionEstadiaHoras);
         Assert.Equal(4200m, completed.MontoTotalPagar);
@@ -93,6 +121,11 @@ public sealed class ParqueoRepositoryTests
         var byProvince = await entries.ListarPorProvinciaYFechasAsync(
             "san jos", start, end);
         Assert.Contains(byProvince, item => item.Consecutivo == 1);
+        var provinceMatch = Assert.Single(byProvince.Where(item => item.Consecutivo == 1));
+        Assert.Equal(1, provinceMatch.Automovil.Id);
+        Assert.Equal(1, provinceMatch.Parqueo.Id);
+        Assert.Equal(3.5m, provinceMatch.DuracionEstadiaHoras);
+        Assert.Equal(4200m, provinceMatch.MontoTotalPagar);
         Assert.Equal(1200m, await entries.ObtenerPrecioPorHoraPorParqueoAsync(1));
 
         var createdCar = new Automovil
@@ -127,6 +160,16 @@ public sealed class ParqueoRepositoryTests
             Assert.True(createdCar.Id > 0);
             Assert.True(createdPark.Id > 0);
             Assert.True(createdEntry.Consecutivo > 0);
+            createdCar.Color = "Amarillo";
+            Assert.True(await cars.ActualizarAsync(createdCar));
+            Assert.Equal(
+                "Amarillo",
+                (await cars.ObtenerPorIdAsync(createdCar.Id))!.Color);
+            createdPark.Nombre = "Parqueo actualizado";
+            Assert.True(await parks.ActualizarAsync(createdPark));
+            Assert.Equal(
+                "Parqueo actualizado",
+                (await parks.ObtenerPorIdAsync(createdPark.Id))!.Nombre);
             Assert.Equal(500m,
                 (await entries.ObtenerPorIdAsync(createdEntry.Consecutivo))!.MontoTotalPagar);
 
@@ -139,6 +182,13 @@ public sealed class ParqueoRepositoryTests
             Assert.True(await entries.ActualizarAsync(createdEntry));
             Assert.Null(
                 (await entries.ObtenerPorIdAsync(createdEntry.Consecutivo))!.MontoTotalPagar);
+            Assert.False(await entries.ActualizarAsync(new IngresoAutomovil
+            {
+                Consecutivo = int.MaxValue,
+                IdAutomovil = createdCar.Id,
+                IdParqueo = createdPark.Id,
+                FechaHoraEntrada = new DateTime(2026, 10, 24, 10, 0, 0)
+            }));
 
             Assert.True(await entries.EliminarAsync(createdEntry.Consecutivo));
             Assert.True(await cars.EliminarAsync(createdCar.Id));

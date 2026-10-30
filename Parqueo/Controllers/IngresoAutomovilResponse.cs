@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Parqueo.Repositories;
 
 namespace Parqueo.Controllers;
 
@@ -57,4 +58,19 @@ public sealed class IngresoAutomovilResponse
             MontoTotalPagar = ingreso.MontoTotalPagar
         };
     }
+
+    public static IngresoAutomovilResponse FromConsulta(IngresoAutomovilConsulta consulta) =>
+        new()
+        {
+            Consecutivo = consulta.Consecutivo,
+            IdParqueo = consulta.Parqueo.Id,
+            IdAutomovil = consulta.Automovil.Id,
+            FechaHoraEntrada = consulta.FechaHoraEntrada,
+            FechaHoraSalida = consulta.FechaHoraSalida,
+            Parqueo = consulta.Parqueo,
+            Automovil = consulta.Automovil,
+            DuracionEstadiaMinutos = consulta.DuracionEstadiaMinutos,
+            DuracionEstadiaHoras = consulta.DuracionEstadiaHoras,
+            MontoTotalPagar = consulta.MontoTotalPagar
+        };
 }

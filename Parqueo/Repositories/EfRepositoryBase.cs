@@ -30,8 +30,21 @@ public abstract class EfRepositoryBase<TEntity>(ParqueoDbContext context)
         TEntity entity,
         CancellationToken cancellationToken = default)
     {
-        Entities.Update(entity);
-        return await Context.SaveChangesAsync(cancellationToken) > 0;
+        var primaryKey = Context.Model.FindEntityType(typeof(TEntity))?.FindPrimaryKey()
+            ?? throw new InvalidOperationException(
+                $"La entidad {typeof(TEntity).Name} no tiene llave primaria configurada.");
+        var keyValues = primaryKey.Properties
+            .Select(property => Context.Entry(entity).Property(property.Name).CurrentValue)
+            .ToArray();
+        var existing = await Entities.FindAsync(keyValues, cancellationToken);
+        if (existing is null)
+        {
+            return false;
+        }
+
+        Context.Entry(existing).CurrentValues.SetValues(entity);
+        await Context.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     public async Task<bool> EliminarAsync(

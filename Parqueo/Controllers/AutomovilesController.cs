@@ -12,8 +12,25 @@ public sealed class AutomovilesController(IAutomovilRepository automoviles) : Co
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<Automovil>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<Automovil>>> ObtenerTodos(
-        CancellationToken cancellationToken) =>
-        Ok(await automoviles.ObtenerTodosAsync(cancellationToken));
+        [FromQuery] string? color,
+        [FromQuery] int? anioDesde,
+        [FromQuery] int? anioHasta,
+        [FromQuery] string? fabricante,
+        [FromQuery] string? tipo,
+        CancellationToken cancellationToken)
+    {
+        if (anioDesde > anioHasta)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Intervalo de años inválido.",
+                Detail = "anioDesde debe ser menor o igual que anioHasta."
+            });
+        }
+
+        return Ok(await automoviles.BuscarAsync(
+            color, anioDesde, anioHasta, fabricante, tipo, cancellationToken));
+    }
 
     [HttpGet("{id:int}")]
     [ProducesResponseType<Automovil>(StatusCodes.Status200OK)]
@@ -50,11 +67,6 @@ public sealed class AutomovilesController(IAutomovilRepository automoviles) : Co
         [FromBody] AutomovilRequest request,
         CancellationToken cancellationToken)
     {
-        if (await automoviles.ObtenerPorIdAsync(id, cancellationToken) is null)
-        {
-            return NotFound();
-        }
-
         var actualizado = await automoviles.ActualizarAsync(
             request.ToEntity(id),
             cancellationToken);
