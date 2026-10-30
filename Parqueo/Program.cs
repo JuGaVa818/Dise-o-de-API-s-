@@ -1,14 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Parqueo.Data;
 using Parqueo.Repositories;
 using AutomovilModel = global::Parqueo.Automovil;
 using ParqueoModel = global::Parqueo.Parqueo;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddUserSecrets<Program>(optional: true);
+builder.Services.AddControllers();
 
 var storageMode = builder.Configuration["Storage:Mode"] ?? "json";
 var connectionString = builder.Configuration.GetConnectionString("Parqueo");
@@ -57,14 +57,17 @@ builder.Services.AddScoped<IRepository<ParqueoModel>>(services =>
         ? services.GetRequiredService<ParqueoJsonRepository>()
         : services.GetRequiredService<ParqueoEfRepository>());
 
-using var host = builder.Build();
-using var scope = host.Services.CreateScope();
+var app = builder.Build();
+app.MapControllers();
+
+using var scope = app.Services.CreateScope();
 var automoviles = scope.ServiceProvider.GetRequiredService<IAutomovilRepository>();
 var parqueos = scope.ServiceProvider.GetRequiredService<IParqueoRepository>();
 var ingresos = scope.ServiceProvider.GetRequiredService<IIngresoAutomovilRepository>();
-
 var automovilCount = (await automoviles.ObtenerTodosAsync()).Count;
 var parqueoCount = (await parqueos.ObtenerTodosAsync()).Count;
 var ingresoCount = (await ingresos.ObtenerTodosAsync()).Count;
-Console.WriteLine($"Parqueo ({storageMode}): {automovilCount} automóviles, " +
+Console.WriteLine($"Parqueo API ({storageMode}): {automovilCount} automóviles, " +
                   $"{parqueoCount} parqueos, {ingresoCount} ingresos.");
+
+await app.RunAsync();
